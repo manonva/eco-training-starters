@@ -68,7 +68,7 @@ function formatPrice(value: number) {
   }).format(value);
 }
 
-function CommerceHeader({ cartCount }: { cartCount: number }) {
+function CommerceHeader({ cartCount }: { cartCount: Readonly<number> }) {
   return (
     <header className="shop-header">
       <div className="shop-branding">
@@ -89,7 +89,7 @@ function CommerceHeader({ cartCount }: { cartCount: number }) {
   );
 }
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product }: { product: Readonly<Product> }) {
   return (
     <article className="shop-product-card">
       <img src={product.heroAsset} alt={product.name} />
@@ -106,7 +106,7 @@ function ProductCard({ product }: { product: Product }) {
   );
 }
 
-function HomePage({ home }: { home: HomePayload }) {
+function HomePage({ home }: { home: Readonly<HomePayload> }) {
   const [promos, setPromos] = useState(home.promos);
 
   useEffect(() => {
@@ -166,7 +166,7 @@ function HomePage({ home }: { home: HomePayload }) {
   );
 }
 
-function ProductsPage({ products, categories }: { products: Product[]; categories: string[] }) {
+function ProductsPage({ products, categories }: { products: Readonly<Product[]>; categories: Readonly<string[]> }) {
   return (
     <section className="shop-catalog-layout">
       <aside className="shop-filter-panel">
@@ -188,7 +188,7 @@ function ProductsPage({ products, categories }: { products: Product[]; categorie
   );
 }
 
-function ProductDetailPage({ products }: { products: Product[] }) {
+function ProductDetailPage({ products }: { products: Readonly<Product[]> }) {
   const { id } = useParams();
   const [detail, setDetail] = useState<ProductDetail | null>(null);
 
@@ -278,7 +278,7 @@ function ProductDetailPage({ products }: { products: Product[] }) {
   );
 }
 
-function SearchPage({ categories }: { categories: string[] }) {
+function SearchPage({ categories }: { categories: Readonly<string[]> }) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
   const [results, setResults] = useState<Product[]>([]);
@@ -325,7 +325,7 @@ function SearchPage({ categories }: { categories: string[] }) {
   );
 }
 
-function CartPage({ cart }: { cart: CartPayload }) {
+function CartPage({ cart }: { cart: Readonly<CartPayload> }) {
   return (
     <section className="shop-order-layout">
       <div className="shop-order-list">
@@ -364,7 +364,7 @@ function CartPage({ cart }: { cart: CartPayload }) {
   );
 }
 
-function CheckoutPage({ checkout }: { checkout: CheckoutPayload | null }) {
+function CheckoutPage({ checkout }: { checkout: Readonly<CheckoutPayload> | null }) {
   if (!checkout) {
     return <main className="shop-stack"><p>Chargement de la commande...</p></main>;
   }
