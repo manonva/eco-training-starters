@@ -2,6 +2,7 @@ module.exports = {
   ci: {
     collect: {
       url: ['http://localhost:5173/'],
+      startServerCommand: 'npm run dev',
       numberOfRuns: 3,
       settings: {
         chromeFlags: '--no-sandbox',
