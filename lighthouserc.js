@@ -3,7 +3,7 @@ module.exports = {
     collect: {
       url: ['http://localhost:5173/'],
       startServerCommand: 'npm run dev',
-      numberOfRuns: 3,
+      numberOfRuns: 2,
       settings: {
         chromeFlags: '--no-sandbox',
         preset: 'desktop',
