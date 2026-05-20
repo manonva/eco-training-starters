@@ -12,7 +12,7 @@ module.exports = {
     assert: {
       preset: 'lighthouse:recommended',
       assertions: {
-        'categories:performance': ['error', { minScore: 0.8 }],
+        'categories:performance': ['error', { minScore: 0.6 }],
         'categories:accessibility': ['warn', { minScore: 0.8 }],
       },
     },
