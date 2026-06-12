@@ -51,7 +51,14 @@ type CheckoutPayload = {
   recommendations: Product[];
 };
 
-type SearchPayload = { count: number; results: Product[] };
+type PaginatedPayload<T> = {
+  page: number;
+  limit: number;
+  total: number;
+  results: T[];
+};
+
+type SearchPayload = PaginatedPayload<Product>;
 
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
@@ -214,19 +221,22 @@ function ProductDetailPage({ products }: Readonly<{ products: Product[] }>) {
       .catch(() => setDetail(null));
   }, [id]);
 
-  const current =
-    detail ?? products.find((product) => product.id === id) ?? products[0];
-  const recommended = current
-    ? products.filter((product) => current.recommendations.includes(product.id))
-    : [];
+  const current = detail;
+
+  console.log(current);
 
   if (!current) {
     return (
       <main className="shop-stack">
-        <p>Produit introuvable.</p>
+        <p>Chargement...</p>
       </main>
     );
   }
+                console.log(current.duplicateMarketingCopy);
+
+  const recommended = detail
+    ? products.filter((product) => detail.recommendations.includes(product.id))
+    : [];
 
   return (
     <div className="shop-stack">
@@ -325,12 +335,13 @@ function SearchPage({ categories }: Readonly<{ categories: string[] }>) {
         "/api/search?q=" +
         encodeURIComponent(query) +
         "&category=" +
-        encodeURIComponent(category);
+        encodeURIComponent(category) +
+        "&limit=12";
 
       fetchJson<SearchPayload>(url)
         .then((payload) => {
           setResults(payload.results);
-          setCount(payload.count);
+          setCount(payload.total);
         })
         .catch(() => {
           setResults([]);
@@ -509,11 +520,11 @@ export default function ShopApp() {
   useEffect(() => {
     Promise.all([
       fetchJson<HomePayload>("/api/shop/home"),
-      fetchJson<Product[]>("/api/products"),
+      fetchJson<PaginatedPayload<Product>>("/api/products?limit=12"),
       fetchJson<CartPayload>("/api/cart"),
     ]).then(([homePayload, productPayload, cartPayload]) => {
       setHome(homePayload);
-      setProducts(productPayload);
+      setProducts(productPayload.results);
       setCart(cartPayload);
     });
   }, []);

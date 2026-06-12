@@ -18,18 +18,8 @@
     }
   ],
   "filters": {
-    "categories": [
-      "mobilier",
-      "textile",
-      "bureau",
-      "outdoor"
-    ],
-    "priceRanges": [
-      "0-50",
-      "50-100",
-      "100-150",
-      "150+"
-    ]
+    "categories": ["mobilier", "textile", "bureau", "outdoor"],
+    "priceRanges": ["0-50", "50-100", "100-150", "150+"]
   },
   "cart": {
     "items": [
@@ -90,16 +80,9 @@
             }
           ],
           "duplicateMarketingCopy": [
-            "Livraison suivie, selection en stock, service client disponible et conseils d installation inclus.",
-            "Livraison suivie, selection en stock, service client disponible et conseils d installation inclus.",
-            "Livraison suivie, selection en stock, service client disponible et conseils d installation inclus.",
             "Livraison suivie, selection en stock, service client disponible et conseils d installation inclus."
           ],
-          "recommendations": [
-            "product-2",
-            "product-3",
-            "product-4"
-          ]
+          "recommendations": ["product-2", "product-3", "product-4"]
         }
       },
       {
@@ -159,16 +142,9 @@
             }
           ],
           "duplicateMarketingCopy": [
-            "Livraison suivie, selection en stock, service client disponible et conseils d installation inclus.",
-            "Livraison suivie, selection en stock, service client disponible et conseils d installation inclus.",
-            "Livraison suivie, selection en stock, service client disponible et conseils d installation inclus.",
             "Livraison suivie, selection en stock, service client disponible et conseils d installation inclus."
           ],
-          "recommendations": [
-            "product-3",
-            "product-4",
-            "product-5"
-          ]
+          "recommendations": ["product-3", "product-4", "product-5"]
         }
       }
     ]
