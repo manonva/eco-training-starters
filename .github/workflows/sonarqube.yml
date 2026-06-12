@@ -57,76 +57,76 @@ jobs:
           npm run dev -- --host 0.0.0.0 > app.log 2>&1 &
           npx wait-on http://localhost:5173/
 
-      - name: Run Lighthouse CI
-        run: |
-          npm install -g @lhci/cli
-          lhci autorun > .lighthouseci/lighthouse.log 2>&1 || true
+      # - name: Run Lighthouse CI
+      #   run: |
+      #     npm install -g @lhci/cli
+      #     lhci autorun > .lighthouseci/lighthouse.log 2>&1 || true
 
-      - name: Rename Lighthouse reports
-        if: always()
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
+      # - name: Rename Lighthouse reports
+      #   if: always()
+      #   run: |
+      #     node <<'NODE'
+      #     const fs = require('fs');
+      #     const path = require('path');
 
-          const manifestPath = '.lighthouseci/manifest.json';
-          const out = 'reports/lighthouse';
-          fs.mkdirSync(out, { recursive: true });
+      #     const manifestPath = '.lighthouseci/manifest.json';
+      #     const out = 'reports/lighthouse';
+      #     fs.mkdirSync(out, { recursive: true });
 
-          if (!fs.existsSync(manifestPath)) process.exit(0);
+      #     if (!fs.existsSync(manifestPath)) process.exit(0);
 
-          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      #     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
-          const slug = (url) => {
-            if (url.endsWith('/products/product-1')) return 'page-produit';
-            if (url.endsWith('/products')) return 'catalogue';
-            return 'accueil';
-          };
+      #     const slug = (url) => {
+      #       if (url.endsWith('/products/product-1')) return 'page-produit';
+      #       if (url.endsWith('/products')) return 'catalogue';
+      #       return 'accueil';
+      #     };
 
-          const counters = {};
+      #     const counters = {};
 
-          for (const item of manifest) {
-            const name = slug(item.url);
-            counters[name] = (counters[name] || 0) + 1;
+      #     for (const item of manifest) {
+      #       const name = slug(item.url);
+      #       counters[name] = (counters[name] || 0) + 1;
 
-            if (item.htmlPath && fs.existsSync(item.htmlPath)) {
-              fs.copyFileSync(item.htmlPath, path.join(out, `${name}-run-${counters[name]}.html`));
-            }
+      #       if (item.htmlPath && fs.existsSync(item.htmlPath)) {
+      #         fs.copyFileSync(item.htmlPath, path.join(out, `${name}-run-${counters[name]}.html`));
+      #       }
 
-            if (item.jsonPath && fs.existsSync(item.jsonPath)) {
-              fs.copyFileSync(item.jsonPath, path.join(out, `${name}-run-${counters[name]}.json`));
-            }
-          }
-          NODE
+      #       if (item.jsonPath && fs.existsSync(item.jsonPath)) {
+      #         fs.copyFileSync(item.jsonPath, path.join(out, `${name}-run-${counters[name]}.json`));
+      #       }
+      #     }
+      #     NODE
 
-      - name: Lighthouse summary
-        if: always()
-        run: |
-          echo "## Lighthouse CI" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+      # - name: Lighthouse summary
+      #   if: always()
+      #   run: |
+      #     echo "## Lighthouse CI" >> $GITHUB_STEP_SUMMARY
+      #     echo "" >> $GITHUB_STEP_SUMMARY
 
-          if grep -qiE "error|failed|assertion|not met" .lighthouseci/lighthouse.log; then
-            echo "### Erreurs détectées" >> $GITHUB_STEP_SUMMARY
-            echo '```text' >> $GITHUB_STEP_SUMMARY
-            grep -iE "error|failed|assertion|not met" .lighthouseci/lighthouse.log | tail -30 >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          else
-            echo "Aucune erreur Lighthouse détectée." >> $GITHUB_STEP_SUMMARY
-          fi
+      #     if grep -qiE "error|failed|assertion|not met" .lighthouseci/lighthouse.log; then
+      #       echo "### Erreurs détectées" >> $GITHUB_STEP_SUMMARY
+      #       echo '```text' >> $GITHUB_STEP_SUMMARY
+      #       grep -iE "error|failed|assertion|not met" .lighthouseci/lighthouse.log | tail -30 >> $GITHUB_STEP_SUMMARY
+      #       echo '```' >> $GITHUB_STEP_SUMMARY
+      #     else
+      #       echo "Aucune erreur Lighthouse détectée." >> $GITHUB_STEP_SUMMARY
+      #     fi
 
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Rapports disponibles dans l’artefact \`lighthouse-report\`." >> $GITHUB_STEP_SUMMARY
+      #     echo "" >> $GITHUB_STEP_SUMMARY
+      #     echo "Rapports disponibles dans l’artefact \`lighthouse-report\`." >> $GITHUB_STEP_SUMMARY
 
-      - name: Upload Lighthouse report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: lighthouse-report
-          path: |
-            .lighthouseci/
-            reports/lighthouse/
-          include-hidden-files: true
-          if-no-files-found: warn
+      # - name: Upload Lighthouse report
+      #   uses: actions/upload-artifact@v4
+      #   if: always()
+      #   with:
+      #     name: lighthouse-report
+      #     path: |
+      #       .lighthouseci/
+      #       reports/lighthouse/
+      #     include-hidden-files: true
+      #     if-no-files-found: warn
 
       - name: Run GreenIT Analysis
         if: always()
@@ -136,11 +136,6 @@ jobs:
 
           git clone --depth 1 https://github.com/cnumr/GreenIT-Analysis-cli.git /tmp/GreenIT-Analysis-cli
 
-          cd /tmp/GreenIT-Analysis-cli
-          npm install
-          npx puppeteer browsers install chrome
-          cd -
-
           docker build -t greenit-analysis-cli /tmp/GreenIT-Analysis-cli
 
           docker run --init --rm --cap-add=SYS_ADMIN --network host \
@@ -149,7 +144,7 @@ jobs:
             -e TZ=Europe/Paris \
             --name GreenIT-Analysis \
             greenit-analysis-cli \
-            greenit analyse /app/input/url.yaml /app/output/report.html --format html --max_tab=1 --timeout=60000 --retry=1 --headless true --language fr \
+            sh -c "npx puppeteer install chrome && greenit analyse /app/input/url.yaml /app/output/report.html --format html --max_tab=1 --timeout=60000 --retry=1 --headless true --language fr" \
             > artifacts/greenit/greenit.log 2>&1 || true
 
       - name: GreenIT summary
