@@ -101,12 +101,15 @@ jobs:
 
       - name: Run GreenIT Analysis
         run: |
+          mkdir -p greenit-output
+          chmod -R 777 greenit-output
           docker run --rm --network host \
             -v ${{ github.workspace }}/greenit:/app/input \
             -v ${{ github.workspace }}/greenit-output:/app/output \
             jpreisner/greenit-analysis-cli:latest \
             greenit analyse /app/input/urls.yml /app/output/greenit-report.html --format=html --ci \
             > greenit-output/greenit.log 2>&1 || true
+          chmod -R 755 greenit-output
 
       - name: Debug GreenIT
         if: always()
