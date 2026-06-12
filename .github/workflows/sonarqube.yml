@@ -136,6 +136,11 @@ jobs:
 
           git clone --depth 1 https://github.com/cnumr/GreenIT-Analysis-cli.git /tmp/GreenIT-Analysis-cli
 
+          cd /tmp/GreenIT-Analysis-cli
+          npm install
+          npx puppeteer browsers install chrome
+          cd -
+
           docker build -t greenit-analysis-cli /tmp/GreenIT-Analysis-cli
 
           docker run --init --rm --cap-add=SYS_ADMIN --network host \
