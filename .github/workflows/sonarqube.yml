@@ -66,60 +66,13 @@ jobs:
       - name: Run Lighthouse CI
         run: |
           npm install -g @lhci/cli
+          mkdir -p lighthouse-report
 
           lhci autorun > lighthouse-report/lighthouse.log 2>&1 || true
 
-          echo "=== Recherche des rapports Lighthouse ===" >> lighthouse-report/lighthouse.log
-          find . -name "*.html" >> lighthouse-report/lighthouse.log || true
-          find . -name "*.json" >> lighthouse-report/lighthouse.log || true
-
-          find . -name "*.report.html" -exec cp {} lighthouse-report/ \; || true
-          find . -name "*.report.json" -exec cp {} lighthouse-report/ \; || true
-
+          cp .lighthouseci/*.html lighthouse-report/ 2>/dev/null || true
+          cp .lighthouseci/*.json lighthouse-report/ 2>/dev/null || true
           touch lighthouse-report/.keep
-
-      - name: Copy Lighthouse reports
-        if: always()
-        run: |
-          find . -name "*.report.html" -exec cp {} lighthouse-report/ \; || true
-          find . -name "*.report.json" -exec cp {} lighthouse-report/ \; || true
-          
-      - name: Rename Lighthouse reports
-        if: always()
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
-
-          const manifestPath = '.lighthouseci/manifest.json';
-          const out = 'reports/lighthouse';
-          fs.mkdirSync(out, { recursive: true });
-
-          if (!fs.existsSync(manifestPath)) process.exit(0);
-
-          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-
-          const slug = (url) => {
-            if (url.endsWith('/products/product-1')) return 'page-produit';
-            if (url.endsWith('/products')) return 'catalogue';
-            return 'accueil';
-          };
-
-          const counters = {};
-
-          for (const item of manifest) {
-            const name = slug(item.url);
-            counters[name] = (counters[name] || 0) + 1;
-
-            if (item.htmlPath && fs.existsSync(item.htmlPath)) {
-              fs.copyFileSync(item.htmlPath, path.join(out, `${name}-run-${counters[name]}.html`));
-            }
-
-            if (item.jsonPath && fs.existsSync(item.jsonPath)) {
-              fs.copyFileSync(item.jsonPath, path.join(out, `${name}-run-${counters[name]}.json`));
-            }
-          }
-          NODE
 
       - name: Lighthouse summary
         if: always()
@@ -127,21 +80,21 @@ jobs:
           echo "## Lighthouse CI" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          for file in lighthouse-report/*.report.json
+          for file in lighthouse-report/lhr-*.json
           do
             [ -f "$file" ] || continue
 
             URL=$(jq -r '.finalDisplayedUrl' "$file")
-            PERF=$(jq '.categories.performance.score * 100' "$file")
-            ACCESS=$(jq '.categories.accessibility.score * 100' "$file")
-            BP=$(jq '.categories["best-practices"].score * 100' "$file")
-            SEO=$(jq '.categories.seo.score * 100' "$file")
+            PERF=$(jq '.categories.performance.score * 100 | floor' "$file")
+            ACCESS=$(jq '.categories.accessibility.score * 100 | floor' "$file")
+            BP=$(jq '.categories["best-practices"].score * 100 | floor' "$file")
+            SEO=$(jq '.categories.seo.score * 100 | floor' "$file")
 
             echo "### $URL" >> $GITHUB_STEP_SUMMARY
-            echo "- Performance : ${PERF%.*}" >> $GITHUB_STEP_SUMMARY
-            echo "- Accessibilité : ${ACCESS%.*}" >> $GITHUB_STEP_SUMMARY
-            echo "- Bonnes pratiques : ${BP%.*}" >> $GITHUB_STEP_SUMMARY
-            echo "- SEO : ${SEO%.*}" >> $GITHUB_STEP_SUMMARY
+            echo "- Performance : $PERF" >> $GITHUB_STEP_SUMMARY
+            echo "- Accessibilité : $ACCESS" >> $GITHUB_STEP_SUMMARY
+            echo "- Bonnes pratiques : $BP" >> $GITHUB_STEP_SUMMARY
+            echo "- SEO : $SEO" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           done
 
