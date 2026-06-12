@@ -1,0 +1,11 @@
+- name: "Accueil"
+  url: "http://localhost:5173/"
+  waitForNavigation: "networkidle2"
+
+- name: "Catalogue"
+  url: "http://localhost:5173/products"
+  waitForNavigation: "networkidle2"
+
+- name: "Page produit"
+  url: "http://localhost:5173/products/product-1"
+  waitForNavigation: "networkidle2"
