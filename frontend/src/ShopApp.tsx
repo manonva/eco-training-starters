@@ -223,8 +223,6 @@ function ProductDetailPage({ products }: Readonly<{ products: Product[] }>) {
 
   const current = detail;
 
-  console.log(current);
-
   if (!current) {
     return (
       <main className="shop-stack">
@@ -232,7 +230,6 @@ function ProductDetailPage({ products }: Readonly<{ products: Product[] }>) {
       </main>
     );
   }
-                console.log(current.duplicateMarketingCopy);
 
   const recommended = detail
     ? products.filter((product) => detail.recommendations.includes(product.id))

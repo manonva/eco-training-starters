@@ -41,7 +41,20 @@ app.use((req, _res, next) => {
   next();
 });
 
-app.use('/assets', express.static(path.join(projectRoot, 'assets')));
+app.use(
+  '/assets',
+  express.static(path.join(projectRoot, 'assets'), {
+    maxAge: '7d',
+    immutable: true,
+  }),
+);
+
+function setCache(seconds: number) {
+  return (_req: express.Request, res: express.Response, next: express.NextFunction) => {
+    res.setHeader('Cache-Control', `public, max-age=${seconds}`);
+    next();
+  };
+}
 
 function toProductSummary(product: Product) {
   return {
@@ -67,21 +80,21 @@ function paginate<T>(items: T[], page: number, limit: number) {
   };
 }
 
-app.get('/api/shop/home', (_req, res) => {
+app.get('/api/shop/home', setCache(60), (_req, res) => {
   res.json({
     ...shop,
     featured: products.slice(0, 6).map(toProductSummary),
   });
 });
 
-app.get('/api/products', (req, res) => {
+app.get('/api/products', setCache(60), (req, res) => {
   const page = Number(req.query.page ?? 1);
   const limit = Number(req.query.limit ?? 12);
 
   res.json(paginate(products.map(toProductSummary), page, limit));
 });
 
-app.get('/api/products/:id', (req, res) => {
+app.get('/api/products/:id', setCache(60), (req, res) => {
   const product = products.find((entry) => entry.id === req.params.id);
 
   if (!product) {
@@ -92,7 +105,7 @@ app.get('/api/products/:id', (req, res) => {
   res.json(product);
 });
 
-app.get('/api/search', (req, res) => {
+app.get('/api/search', setCache(60), (req, res) => {
   const query = String(req.query.q ?? '').trim().toLowerCase();
   const category = String(req.query.category ?? '');
   const page = Number(req.query.page ?? 1);
@@ -117,6 +130,7 @@ app.get('/api/promotions', (_req, res) => {
 });
 
 app.get('/api/stock/:id', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const product = products.find((entry) => entry.id === req.params.id);
 
   if (!product) {
@@ -131,6 +145,7 @@ app.get('/api/stock/:id', (req, res) => {
 });
 
 app.get('/api/cart', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const subtotal = shop.cart.items.reduce(
     (total, item) => total + item.lineTotal,
     0,
@@ -144,6 +159,7 @@ app.get('/api/cart', (_req, res) => {
 });
 
 app.get('/api/checkout', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const subtotal = shop.cart.items.reduce(
     (total, item) => total + item.lineTotal,
     0,
