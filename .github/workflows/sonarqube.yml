@@ -138,13 +138,19 @@ jobs:
 
           docker build -t greenit-analysis-cli /tmp/GreenIT-Analysis-cli
 
+          CHROME_PATH="$(which google-chrome || which google-chrome-stable || which chromium || which chromium-browser)"
+
+          echo "Chrome path on runner: $CHROME_PATH"
+
           docker run --init --rm --cap-add=SYS_ADMIN --network host \
             -v "$PWD/artifacts/greenit/input:/app/input:ro" \
             -v "$PWD/artifacts/greenit/output:/app/output" \
+            -v "$CHROME_PATH:/usr/bin/google-chrome:ro" \
             -e TZ=Europe/Paris \
+            -e PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome \
             --name GreenIT-Analysis \
             greenit-analysis-cli \
-            sh -c "npx puppeteer install chrome && greenit analyse /app/input/url.yaml /app/output/report.html --format html --max_tab=1 --timeout=60000 --retry=1 --headless true --language fr" \
+            greenit analyse /app/input/url.yaml /app/output/report.html --format html --max_tab=1 --timeout=60000 --retry=1 --headless true --language fr \
             > artifacts/greenit/greenit.log 2>&1 || true
 
       - name: GreenIT summary
