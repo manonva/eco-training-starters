@@ -45,6 +45,12 @@ jobs:
 
       - run: npm install
 
+      - name: Prepare report folders
+        run: |
+          mkdir -p .lighthouseci
+          mkdir -p greenit-output
+          ls -la
+
       - name: Start Vite app
         run: |
           npm run dev -- --host 0.0.0.0 > app.log 2>&1 &
@@ -52,14 +58,19 @@ jobs:
 
       - name: Run Lighthouse CI
         run: |
-          mkdir -p .lighthouseci
           npm install -g @lhci/cli
           lhci collect
           lhci assert || true
           lhci upload || true
-          ls -la .lighthouseci
+
+      - name: Debug Lighthouse output
+        if: always()
+        run: |
+          echo "Contenu .lighthouseci:"
+          ls -la .lighthouseci || true
 
       - name: Add Lighthouse links to summary
+        if: always()
         run: |
           echo "## Lighthouse CI" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -68,11 +79,14 @@ jobs:
             node -e "
               const fs = require('fs');
               const manifest = JSON.parse(fs.readFileSync('.lighthouseci/manifest.json', 'utf8'));
+
               for (const r of manifest) {
-                console.log('- [' + r.url + '](' + (r.reportUrl || '') + ')');
+                const reportUrl = r.reportUrl || '';
+                console.log('- [' + r.url + '](' + reportUrl + ')');
                 console.log('  - Performance: ' + Math.round((r.summary.performance || 0) * 100));
                 console.log('  - Accessibilité: ' + Math.round((r.summary.accessibility || 0) * 100));
-                console.log('  - Bonnes pratiques: ' + Math.round((r.summary['best-practices'] || 0) * 100));
+                console.log('  - Bonnes pratiques: ' + Math.round((r.summary[\"best-practices\"] || 0) * 100));
+                console.log('  - SEO: ' + Math.round((r.summary.seo || 0) * 100));
                 console.log('');
               }
             " >> $GITHUB_STEP_SUMMARY
@@ -86,22 +100,25 @@ jobs:
         with:
           name: lighthouse-report
           path: .lighthouseci/
+          include-hidden-files: true
           if-no-files-found: warn
 
       - name: Run GreenIT Analysis
         run: |
-          mkdir -p greenit-output
-
           docker run --rm --network host \
             -v ${{ github.workspace }}/greenit:/app/input \
             -v ${{ github.workspace }}/greenit-output:/app/output \
             jpreisner/greenit-analysis-cli:latest \
             greenit analyse /app/input/urls.yaml /app/output/greenit-report.html --format=html --ci || true
 
-          echo "Contenu greenit-output :"
+      - name: Debug GreenIT output
+        if: always()
+        run: |
+          echo "Contenu greenit-output:"
           ls -la greenit-output || true
 
       - name: Add GreenIT link to summary
+        if: always()
         run: |
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## GreenIT / EcoIndex" >> $GITHUB_STEP_SUMMARY
