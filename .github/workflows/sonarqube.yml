@@ -49,131 +49,85 @@ jobs:
         run: |
           mkdir -p .lighthouseci
           mkdir -p greenit-output
-          mkdir -p reports/lighthouse
 
       - name: Start Vite app
         run: |
           npm run dev -- --host 0.0.0.0 > app.log 2>&1 &
           npx wait-on http://localhost:5173/
 
+      ##################################################
+      # LIGHTHOUSE
+      ##################################################
+
       - name: Run Lighthouse CI
         run: |
           npm install -g @lhci/cli
 
-          {
-            echo "Running Lighthouse collect..."
-            lhci collect
+          lhci autorun > .lighthouseci/lighthouse.log 2>&1 || true
 
-            echo "Running Lighthouse assert..."
-            lhci assert
-
-            echo "Running Lighthouse upload..."
-            lhci upload
-          } 2>&1 | tee .lighthouseci/lighthouse-errors.log || true
-
-      - name: Rename Lighthouse reports
+      - name: Debug Lighthouse
         if: always()
         run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
+          echo "=== CONTENU .lighthouseci ==="
+          ls -la .lighthouseci || true
 
-          const manifestPath = '.lighthouseci/manifest.json';
-          const outputDir = 'reports/lighthouse';
-
-          fs.mkdirSync(outputDir, { recursive: true });
-
-          if (!fs.existsSync(manifestPath)) {
-            fs.writeFileSync(
-              path.join(outputDir, 'lighthouse-error.txt'),
-              'Aucun rapport Lighthouse HTML généré. Voir lighthouse-errors.log.'
-            );
-            process.exit(0);
-          }
-
-          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-
-          const slugify = (url) => {
-            if (url.endsWith('/products/product-1')) return 'page-produit';
-            if (url.endsWith('/products')) return 'catalogue';
-            return 'accueil';
-          };
-
-          const counters = {};
-
-          for (const item of manifest) {
-            const slug = slugify(item.url);
-            counters[slug] = (counters[slug] || 0) + 1;
-
-            if (item.htmlPath && fs.existsSync(item.htmlPath)) {
-              fs.copyFileSync(
-                item.htmlPath,
-                path.join(outputDir, `${slug}-run-${counters[slug]}.html`)
-              );
-            }
-
-            if (item.jsonPath && fs.existsSync(item.jsonPath)) {
-              fs.copyFileSync(
-                item.jsonPath,
-                path.join(outputDir, `${slug}-run-${counters[slug]}.json`)
-              );
-            }
-          }
-          NODE
-
-      - name: Add Lighthouse errors to summary
+      - name: Lighthouse summary
         if: always()
         run: |
           echo "## Lighthouse CI" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ -s ".lighthouseci/lighthouse-errors.log" ]; then
-            echo "### Erreurs / alertes remontées" >> $GITHUB_STEP_SUMMARY
+          if grep -qiE "error|failed|assertion" .lighthouseci/lighthouse.log; then
+            echo "### Erreurs détectées" >> $GITHUB_STEP_SUMMARY
             echo '```text' >> $GITHUB_STEP_SUMMARY
-            grep -Ei "error|failed|warning|assertion|not met|expected|actual" .lighthouseci/lighthouse-errors.log | tail -n 40 >> $GITHUB_STEP_SUMMARY || true
+            grep -iE "error|failed|assertion" .lighthouseci/lighthouse.log | tail -20 >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           else
-            echo "Aucune erreur Lighthouse remontée." >> $GITHUB_STEP_SUMMARY
+            echo "Aucune erreur Lighthouse détectée." >> $GITHUB_STEP_SUMMARY
           fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Rapports HTML générés dans l'artefact : \`lighthouse-report\`." >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Lighthouse report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: lighthouse-report
-          path: |
-            .lighthouseci/
-            reports/lighthouse/
+          path: .lighthouseci/
           include-hidden-files: true
           if-no-files-found: warn
 
+      ##################################################
+      # GREEN IT
+      ##################################################
+
       - name: Run GreenIT Analysis
         run: |
-          {
-            docker run --rm --network host \
-              -v ${{ github.workspace }}/greenit:/app/input \
-              -v ${{ github.workspace }}/greenit-output:/app/output \
-              jpreisner/greenit-analysis-cli:latest \
-              greenit analyse /app/input/urls.yaml /app/output/greenit-report.html --format=html --ci
-          } 2>&1 | tee greenit-output/greenit-errors.log || true
+          docker run --rm --network host \
+            -v ${{ github.workspace }}/greenit:/app/input \
+            -v ${{ github.workspace }}/greenit-output:/app/output \
+            jpreisner/greenit-analysis-cli:latest \
+            greenit analyse /app/input/urls.yml /app/output/greenit-report.html --format=html --ci \
+            > greenit-output/greenit.log 2>&1 || true
 
-      - name: Add GreenIT errors to summary
+      - name: Debug GreenIT
+        if: always()
+        run: |
+          echo "=== CONTENU greenit-output ==="
+          ls -la greenit-output || true
+
+      - name: GreenIT summary
         if: always()
         run: |
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## GreenIT / EcoIndex" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ -s "greenit-output/greenit-errors.log" ]; then
-            echo "### Erreurs / alertes remontées" >> $GITHUB_STEP_SUMMARY
+          if grep -qiE "error|failed|exception|warning|cannot|not found" greenit-output/greenit.log; then
+            echo "### Erreurs détectées" >> $GITHUB_STEP_SUMMARY
             echo '```text' >> $GITHUB_STEP_SUMMARY
-            grep -Ei "error|failed|warning|cannot|not found|exception|unable|docker" greenit-output/greenit-errors.log | tail -n 40 >> $GITHUB_STEP_SUMMARY || true
+            grep -iE "error|failed|exception|warning|cannot|not found" greenit-output/greenit.log | tail -20 >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           else
-            echo "Aucune erreur GreenIT remontée." >> $GITHUB_STEP_SUMMARY
+            echo "Aucune erreur GreenIT détectée." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Upload GreenIT report
