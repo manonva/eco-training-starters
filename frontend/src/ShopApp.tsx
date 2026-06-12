@@ -117,17 +117,7 @@ function ProductCard({ product }: Readonly<{ product: Product }>) {
 }
 
 function HomePage({ home }: Readonly<{ home: HomePayload }>) {
-  const [promos, setPromos] = useState(home.promos);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      fetchJson<{ promos: HomePayload["promos"] }>("/api/promotions")
-        .then((payload) => setPromos(payload.promos))
-        .catch(() => undefined);
-    }, 5000);
-
-    return () => window.clearInterval(timer);
-  }, []);
+  const promos = home.promos;
 
   return (
     <div className="shop-stack">
@@ -330,20 +320,25 @@ function SearchPage({ categories }: Readonly<{ categories: string[] }>) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    const url =
-      "/api/search?q=" +
-      encodeURIComponent(query) +
-      "&category=" +
-      encodeURIComponent(category);
-    fetchJson<SearchPayload>(url)
-      .then((payload) => {
-        setResults(payload.results);
-        setCount(payload.count);
-      })
-      .catch(() => {
-        setResults([]);
-        setCount(0);
-      });
+    const timer = window.setTimeout(() => {
+      const url =
+        "/api/search?q=" +
+        encodeURIComponent(query) +
+        "&category=" +
+        encodeURIComponent(category);
+
+      fetchJson<SearchPayload>(url)
+        .then((payload) => {
+          setResults(payload.results);
+          setCount(payload.count);
+        })
+        .catch(() => {
+          setResults([]);
+          setCount(0);
+        });
+    }, 400);
+
+    return () => window.clearTimeout(timer);
   }, [query, category]);
 
   return (
@@ -428,9 +423,15 @@ function CartPage({ cart }: Readonly<{ cart: CartPayload }>) {
   );
 }
 
-function CheckoutPage({
-  checkout,
-}: Readonly<{ checkout: CheckoutPayload | null }>) {
+function CheckoutPage() {
+  const [checkout, setCheckout] = useState<CheckoutPayload | null>(null);
+
+  useEffect(() => {
+    fetchJson<CheckoutPayload>("/api/checkout")
+      .then(setCheckout)
+      .catch(() => setCheckout(null));
+  }, []);
+
   if (!checkout) {
     return (
       <main className="shop-stack">
@@ -504,19 +505,16 @@ export default function ShopApp() {
   const [home, setHome] = useState<HomePayload | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartPayload | null>(null);
-  const [checkout, setCheckout] = useState<CheckoutPayload | null>(null);
 
   useEffect(() => {
     Promise.all([
       fetchJson<HomePayload>("/api/shop/home"),
       fetchJson<Product[]>("/api/products"),
       fetchJson<CartPayload>("/api/cart"),
-      fetchJson<CheckoutPayload>("/api/checkout"),
-    ]).then(([homePayload, productPayload, cartPayload, checkoutPayload]) => {
+    ]).then(([homePayload, productPayload, cartPayload]) => {
       setHome(homePayload);
       setProducts(productPayload);
       setCart(cartPayload);
-      setCheckout(checkoutPayload);
     });
   }, []);
 
@@ -554,10 +552,7 @@ export default function ShopApp() {
           element={<SearchPage categories={categories} />}
         />
         <Route path="/cart" element={<CartPage cart={cart} />} />
-        <Route
-          path="/checkout"
-          element={<CheckoutPage checkout={checkout} />}
-        />
+        <Route path="/checkout" element={<CheckoutPage />} />
       </Routes>
     </div>
   );
