@@ -47,7 +47,7 @@ jobs:
 
       - name: Prepare folders
         run: |
-          mkdir -p .lighthouseci
+          mkdir -p lighthouseci
           mkdir -p reports/lighthouse
           mkdir -p artifacts/greenit/input
           mkdir -p artifacts/greenit/output
@@ -60,8 +60,14 @@ jobs:
       - name: Run Lighthouse CI
         run: |
           npm install -g @lhci/cli
-          lhci autorun > .lighthouseci/lighthouse.log 2>&1 || true
+          lhci autorun > lighthouseci/lighthouse.log 2>&1 || true
 
+      - name: Copy Lighthouse reports
+        if: always()
+        run: |
+          find . -name "*.report.html" -exec cp {} lighthouse-report/ \; || true
+          find . -name "*.report.json" -exec cp {} lighthouse-report/ \; || true
+          
       - name: Rename Lighthouse reports
         if: always()
         run: |
@@ -105,32 +111,55 @@ jobs:
           echo "## Lighthouse CI" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ -f ".lighthouseci/manifest.json" ]; then
-            node -e "
-              const fs = require('fs');
-              const manifest = JSON.parse(fs.readFileSync('.lighthouseci/manifest.json', 'utf8'));
-              for (const r of manifest) {
-                console.log('### ' + r.url);
-                console.log('- Performance : ' + Math.round((r.summary.performance || 0) * 100));
-                console.log('- Accessibilité : ' + Math.round((r.summary.accessibility || 0) * 100));
-                console.log('- Bonnes pratiques : ' + Math.round((r.summary['best-practices'] || 0) * 100));
-                console.log('- SEO : ' + Math.round((r.summary.seo || 0) * 100));
-                console.log('');
-              }
-            " >> $GITHUB_STEP_SUMMARY
-          fi
+          for file in lighthouse-report/*.report.json
+          do
+            [ -f "$file" ] || continue
+
+            URL=$(jq -r '.finalDisplayedUrl' "$file")
+            PERF=$(jq '.categories.performance.score * 100' "$file")
+            ACCESS=$(jq '.categories.accessibility.score * 100' "$file")
+            BP=$(jq '.categories["best-practices"].score * 100' "$file")
+            SEO=$(jq '.categories.seo.score * 100' "$file")
+
+            echo "### $URL" >> $GITHUB_STEP_SUMMARY
+            echo "- Performance : ${PERF%.*}" >> $GITHUB_STEP_SUMMARY
+            echo "- Accessibilité : ${ACCESS%.*}" >> $GITHUB_STEP_SUMMARY
+            echo "- Bonnes pratiques : ${BP%.*}" >> $GITHUB_STEP_SUMMARY
+            echo "- SEO : ${SEO%.*}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          done
 
           echo "En savoir plus : artefact \`lighthouse-report\`." >> $GITHUB_STEP_SUMMARY
+
+      # - name: Lighthouse summary
+      #   if: always()
+      #   run: |
+      #     echo "## Lighthouse CI" >> $GITHUB_STEP_SUMMARY
+      #     echo "" >> $GITHUB_STEP_SUMMARY
+
+      #     if [ -f ".lighthouseci/manifest.json" ]; then
+      #       node -e "
+      #         const fs = require('fs');
+      #         const manifest = JSON.parse(fs.readFileSync('.lighthouseci/manifest.json', 'utf8'));
+      #         for (const r of manifest) {
+      #           console.log('### ' + r.url);
+      #           console.log('- Performance : ' + Math.round((r.summary.performance || 0) * 100));
+      #           console.log('- Accessibilité : ' + Math.round((r.summary.accessibility || 0) * 100));
+      #           console.log('- Bonnes pratiques : ' + Math.round((r.summary['best-practices'] || 0) * 100));
+      #           console.log('- SEO : ' + Math.round((r.summary.seo || 0) * 100));
+      #           console.log('');
+      #         }
+      #       " >> $GITHUB_STEP_SUMMARY
+      #     fi
+
+      #     echo "En savoir plus : artefact \`lighthouse-report\`." >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Lighthouse report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: lighthouse-report
-          path: |
-            .lighthouseci/
-            reports/lighthouse/
-          include-hidden-files: true
+          path: lighthouse-report/
           if-no-files-found: warn
 
       - name: Run GreenIT Analysis
