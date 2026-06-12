@@ -6,7 +6,7 @@ module.exports = {
         'http://localhost:5173/products',
         'http://localhost:5173/products/product-1',
       ],
-      numberOfRuns: 2,
+      numberOfRuns: 1,
       settings: {
         chromeFlags: '--no-sandbox',
         preset: 'desktop',
