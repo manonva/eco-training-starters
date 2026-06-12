@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, NavLink, Route, Routes, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from "react";
+import { Link, NavLink, Route, Routes, useParams } from "react-router-dom";
+import { OptimizedImage } from "./components/OptimizedImage";
 
 type Product = {
   id: string;
@@ -55,16 +56,16 @@ type SearchPayload = { count: number; results: Product[] };
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error('Echec sur ' + url);
+    throw new Error("Echec sur " + url);
   }
   return response.json() as Promise<T>;
 }
 
 function formatPrice(value: number) {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
   }).format(value);
 }
 
@@ -75,7 +76,10 @@ function CommerceHeader({ cartCount }: Readonly<{ cartCount: number }>) {
         <span className="shop-kicker">Collection maison</span>
         <div>
           <strong>Maison Atelier</strong>
-          <p>Mobilier, textile et accessoires pour les espaces de travail et d'accueil.</p>
+          <p>
+            Mobilier, textile et accessoires pour les espaces de travail et
+            d'accueil.
+          </p>
         </div>
       </div>
       <nav className="shop-nav">
@@ -92,14 +96,20 @@ function CommerceHeader({ cartCount }: Readonly<{ cartCount: number }>) {
 function ProductCard({ product }: Readonly<{ product: Product }>) {
   return (
     <article className="shop-product-card">
-      <img src={product.heroAsset} alt={product.name} />
+      <OptimizedImage
+        src={product.heroAsset}
+        alt={product.name}
+        width={320}
+        height={240}
+        className="product-card__image"
+      />
       <div className="shop-product-copy">
         <span>{product.category}</span>
         <h3>{product.name}</h3>
         <p>{product.shortDescription}</p>
         <div className="shop-product-footer">
           <strong>{formatPrice(product.price)}</strong>
-          <Link to={'/products/' + product.id}>Voir la fiche</Link>
+          <Link to={"/products/" + product.id}>Voir la fiche</Link>
         </div>
       </div>
     </article>
@@ -111,7 +121,7 @@ function HomePage({ home }: Readonly<{ home: HomePayload }>) {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      fetchJson<{ promos: HomePayload['promos'] }>('/api/promotions')
+      fetchJson<{ promos: HomePayload["promos"] }>("/api/promotions")
         .then((payload) => setPromos(payload.promos))
         .catch(() => undefined);
     }, 5000);
@@ -135,7 +145,13 @@ function HomePage({ home }: Readonly<{ home: HomePayload }>) {
         <div className="shop-promo-column">
           {promos.map((promo) => (
             <article key={promo.id} className="shop-promo-card">
-              <img src={promo.asset} alt={promo.title} />
+              <OptimizedImage
+                src={promo.asset}
+                alt={promo.title}
+                width={320}
+                height={240}
+                className="product-card__image"
+              />
               <div>
                 <h3>{promo.title}</h3>
                 <p>{promo.tone}</p>
@@ -166,13 +182,19 @@ function HomePage({ home }: Readonly<{ home: HomePayload }>) {
   );
 }
 
-function ProductsPage({ products, categories }: Readonly<{ products: Product[]; categories: string[] }>) {
+function ProductsPage({
+  products,
+  categories,
+}: Readonly<{ products: Product[]; categories: string[] }>) {
   return (
     <section className="shop-catalog-layout">
       <aside className="shop-filter-panel">
         <p className="shop-eyebrow">Catalogue</p>
         <h1>Collections</h1>
-        <p>Un ensemble de references organisees par usage, matiere et environnement d'installation.</p>
+        <p>
+          Un ensemble de references organisees par usage, matiere et
+          environnement d'installation.
+        </p>
         <div className="shop-chip-list">
           {categories.map((category) => (
             <span key={category}>{category}</span>
@@ -197,24 +219,47 @@ function ProductDetailPage({ products }: Readonly<{ products: Product[] }>) {
       return;
     }
 
-    fetchJson<ProductDetail>('/api/products/' + id).then(setDetail).catch(() => setDetail(null));
+    fetchJson<ProductDetail>("/api/products/" + id)
+      .then(setDetail)
+      .catch(() => setDetail(null));
   }, [id]);
 
-  const current = detail ?? products.find((product) => product.id === id) ?? products[0];
-  const recommended = current ? products.filter((product) => current.recommendations.includes(product.id)) : [];
+  const current =
+    detail ?? products.find((product) => product.id === id) ?? products[0];
+  const recommended = current
+    ? products.filter((product) => current.recommendations.includes(product.id))
+    : [];
 
   if (!current) {
-    return <main className="shop-stack"><p>Produit introuvable.</p></main>;
+    return (
+      <main className="shop-stack">
+        <p>Produit introuvable.</p>
+      </main>
+    );
   }
 
   return (
     <div className="shop-stack">
       <section className="shop-detail-layout">
         <div className="shop-gallery-panel">
-          <img src={current.heroAsset} alt={current.name} className="shop-main-image" />
+          <OptimizedImage
+            src={current.heroAsset}
+            alt={current.name}
+            width={640}
+            height={480}
+            className="product-card__image"
+          />
           <div className="shop-thumbnail-row">
-            {current.thumbnails.map((asset) => (
-              <img key={asset} src={asset} alt={current.name} />
+            {current.thumbnails.map((asset, index) => (
+              <OptimizedImage
+                key={asset}
+                src={asset}
+                alt={`${current.name} - vue ${index + 1}`}
+                width={120}
+                height={90}
+                className="product-thumbnail"
+                priority={index === 0}
+              />
             ))}
           </div>
         </div>
@@ -244,7 +289,7 @@ function ProductDetailPage({ products }: Readonly<{ products: Product[] }>) {
           <div className="shop-stock-bars">
             {detail.stockHistory.map((point) => (
               <div key={point.day} className="shop-stock-item">
-                <span style={{ height: point.stock * 2 + 'px' }} />
+                <span style={{ height: point.stock * 2 + "px" }} />
                 <small>{point.day}</small>
               </div>
             ))}
@@ -279,13 +324,17 @@ function ProductDetailPage({ products }: Readonly<{ products: Product[] }>) {
 }
 
 function SearchPage({ categories }: Readonly<{ categories: string[] }>) {
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('');
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("");
   const [results, setResults] = useState<Product[]>([]);
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    const url = '/api/search?q=' + encodeURIComponent(query) + '&category=' + encodeURIComponent(category);
+    const url =
+      "/api/search?q=" +
+      encodeURIComponent(query) +
+      "&category=" +
+      encodeURIComponent(category);
     fetchJson<SearchPayload>(url)
       .then((payload) => {
         setResults(payload.results);
@@ -305,11 +354,20 @@ function SearchPage({ categories }: Readonly<{ categories: string[] }>) {
           <h1>Trouver une reference</h1>
         </div>
         <div className="shop-search-controls">
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nom, collection ou mot-cle" />
-          <select value={category} onChange={(event) => setCategory(event.target.value)}>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Nom, collection ou mot-cle"
+          />
+          <select
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+          >
             <option value="">Toutes les categories</option>
             {categories.map((item) => (
-              <option key={item} value={item}>{item}</option>
+              <option key={item} value={item}>
+                {item}
+              </option>
             ))}
           </select>
         </div>
@@ -335,7 +393,13 @@ function CartPage({ cart }: Readonly<{ cart: CartPayload }>) {
         </div>
         {cart.items.map((item) => (
           <article key={item.id} className="shop-order-item">
-            <img src={item.snapshot.heroAsset} alt={item.snapshot.name} />
+            <OptimizedImage
+              src={item.snapshot.heroAsset}
+              alt={item.snapshot.name}
+              width={640}
+              height={480}
+              className="product-card__image"
+            />
             <div>
               <strong>{item.snapshot.name}</strong>
               <p>{item.snapshot.shortDescription}</p>
@@ -364,9 +428,15 @@ function CartPage({ cart }: Readonly<{ cart: CartPayload }>) {
   );
 }
 
-function CheckoutPage({ checkout }: Readonly<{ checkout: CheckoutPayload | null }>) {
+function CheckoutPage({
+  checkout,
+}: Readonly<{ checkout: CheckoutPayload | null }>) {
   if (!checkout) {
-    return <main className="shop-stack"><p>Chargement de la commande...</p></main>;
+    return (
+      <main className="shop-stack">
+        <p>Chargement de la commande...</p>
+      </main>
+    );
   }
 
   return (
@@ -406,7 +476,11 @@ function CheckoutPage({ checkout }: Readonly<{ checkout: CheckoutPayload | null 
           </div>
           <div>
             <span>Total TTC</span>
-            <strong>{formatPrice(checkout.subtotal + checkout.shipping + checkout.taxes)}</strong>
+            <strong>
+              {formatPrice(
+                checkout.subtotal + checkout.shipping + checkout.taxes,
+              )}
+            </strong>
           </div>
         </aside>
       </section>
@@ -434,10 +508,10 @@ export default function ShopApp() {
 
   useEffect(() => {
     Promise.all([
-      fetchJson<HomePayload>('/api/shop/home'),
-      fetchJson<Product[]>('/api/products'),
-      fetchJson<CartPayload>('/api/cart'),
-      fetchJson<CheckoutPayload>('/api/checkout')
+      fetchJson<HomePayload>("/api/shop/home"),
+      fetchJson<Product[]>("/api/products"),
+      fetchJson<CartPayload>("/api/cart"),
+      fetchJson<CheckoutPayload>("/api/checkout"),
     ]).then(([homePayload, productPayload, cartPayload, checkoutPayload]) => {
       setHome(homePayload);
       setProducts(productPayload);
@@ -446,11 +520,20 @@ export default function ShopApp() {
     });
   }, []);
 
-  const categories = useMemo(() => Array.from(new Set(products.map((product) => product.category))), [products]);
-  const cartCount = cart ? cart.items.reduce((total, item) => total + item.quantity, 0) : 0;
+  const categories = useMemo(
+    () => Array.from(new Set(products.map((product) => product.category))),
+    [products],
+  );
+  const cartCount = cart
+    ? cart.items.reduce((total, item) => total + item.quantity, 0)
+    : 0;
 
   if (!home || !cart) {
-    return <main className="shop-app"><p className="shop-loading">Chargement de la boutique...</p></main>;
+    return (
+      <main className="shop-app">
+        <p className="shop-loading">Chargement de la boutique...</p>
+      </main>
+    );
   }
 
   return (
@@ -458,11 +541,23 @@ export default function ShopApp() {
       <CommerceHeader cartCount={cartCount} />
       <Routes>
         <Route path="/" element={<HomePage home={home} />} />
-        <Route path="/products" element={<ProductsPage products={products} categories={categories} />} />
-        <Route path="/products/:id" element={<ProductDetailPage products={products} />} />
-        <Route path="/search" element={<SearchPage categories={categories} />} />
+        <Route
+          path="/products"
+          element={<ProductsPage products={products} categories={categories} />}
+        />
+        <Route
+          path="/products/:id"
+          element={<ProductDetailPage products={products} />}
+        />
+        <Route
+          path="/search"
+          element={<SearchPage categories={categories} />}
+        />
         <Route path="/cart" element={<CartPage cart={cart} />} />
-        <Route path="/checkout" element={<CheckoutPage checkout={checkout} />} />
+        <Route
+          path="/checkout"
+          element={<CheckoutPage checkout={checkout} />}
+        />
       </Routes>
     </div>
   );

@@ -478,3 +478,11 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+.product-card__image,
+.product-hero__image,
+.product-thumbnail {
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
